@@ -1,7 +1,6 @@
 import streamlit as st
-import time
 
-# Configuración visual de la aplicación
+# ─── Configuración ───────────────────────────────────────────────
 st.set_page_config(
     page_title="Expedición Heurística: En Busca del Óptimo",
     page_icon="🧭",
@@ -9,12 +8,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Estilos CSS personalizados para una interfaz moderna y tipo videojuego
+# ─── Estilos (selectores actualizados para Streamlit moderno) ────
 st.markdown("""
 <style>
-    .main {
+    [data-testid="stAppViewContainer"] {
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     }
+    [data-testid="stHeader"] { background: transparent; }
+
     .hud-box {
         background: rgba(30, 41, 59, 0.7);
         border: 1px solid rgba(148, 163, 184, 0.2);
@@ -51,7 +52,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Banco de 10 preguntas completas basadas en el temario
+# ─── Banco de preguntas (idéntico) ───────────────────────────────
 PREGUNTAS = [
     {
         "tema": "Concepto Base",
@@ -104,12 +105,7 @@ PREGUNTAS = [
     {
         "tema": "Cálculo Numérico f(n)",
         "pregunta": "Si para llegar a la Ciudad B ya recorriste 25 km (g=25) y su distancia aérea a la meta es 40 km (h=40), ¿cuál es su f(B)?",
-        "opciones": [
-            "f(B) = 15 km",
-            "f(B) = 65 km",
-            "f(B) = 1000 km",
-            "f(B) = 50 km"
-        ],
+        "opciones": ["f(B) = 15 km", "f(B) = 65 km", "f(B) = 1000 km", "f(B) = 50 km"],
         "correcta": 1,
         "explicacion": "f(B) = g(B) + h(B) = 25 + 40 = 65. El algoritmo siempre expandirá primero el nodo que tenga el menor valor de f(n)."
     },
@@ -175,138 +171,166 @@ PREGUNTAS = [
     }
 ]
 
-# Inicialización de estado del juego
-if "indice" not in st.session_state:
-    st.session_state.indice = 0
-    st.session_state.puntos = 0
-    st.session_state.vidas = 3
-    st.session_state.racha = 0
-    st.session_state.historial = []
-    st.session_state.terminado = False
+# ─── Constantes de puntaje (evitan el error del "/1000") ─────────
+PUNTOS_BASE = 100
+BONO_RACHA  = 20
+MAX_PUNTOS  = len(PREGUNTAS) * PUNTOS_BASE + BONO_RACHA * (len(PREGUNTAS) - 1)
+# = 1000 + 180 = 1180
 
+# ─── Estado inicial ──────────────────────────────────────────────
+DEFAULTS = {
+    "indice": 0,
+    "puntos": 0,
+    "vidas": 3,
+    "racha": 0,
+    "max_racha": 0,
+    "respondido": False,
+    "feedback": None,
+    "terminado": False,
+}
+for k, v in DEFAULTS.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+
+def reset_juego():
+    for k, v in DEFAULTS.items():
+        st.session_state[k] = v
+
+
+# ─── Mapa SVG de progreso ────────────────────────────────────────
 def render_mapa_progreso(actual, total):
-    """Renderiza una representación gráfica del camino recorrido en SVG"""
-    nodos_html = []
     ancho_total = 600
-    espacio = ancho_total / (total + 1)
-    
-    lineas = f'<line x1="30" y1="35" x2="{ancho_total-30}" y2="35" stroke="#475569" stroke-width="4" stroke-dasharray="6"/>'
-    
+    lineas = (
+        f'<line x1="30" y1="35" x2="{ancho_total - 30}" y2="35" '
+        f'stroke="#475569" stroke-width="4" stroke-dasharray="6"/>'
+    )
     circulos = []
     for i in range(total):
         cx = 35 + i * (ancho_total - 70) / (total - 1)
         cy = 35
         if i < actual:
-            # Nodo superado (Verde)
-            color = "#22c55e"
-            fill = "#22c55e"
-            texto = "✓"
+            color, fill, texto = "#22c55e", "#22c55e", "✓"
         elif i == actual:
-            # Nodo activo (Azul brillante)
-            color = "#38bdf8"
-            fill = "#0284c7"
-            texto = str(i + 1)
+            color, fill, texto = "#38bdf8", "#0284c7", str(i + 1)
         else:
-            # Nodo futuro (Gris)
-            color = "#64748b"
-            fill = "#1e293b"
-            texto = str(i + 1)
-            
-        circulos.append(f'''
-            <circle cx="{cx}" cy="{cy}" r="14" stroke="{color}" stroke-width="3" fill="{fill}" />
-            <text x="{cx}" y="{cy + 4}" font-size="11" font-weight="bold" fill="white" text-anchor="middle">{texto}</text>
-        ''')
-        
-    svg = f'''
-    <div style="display:flex; justify-content:center; margin-bottom: 15px; overflow-x: auto;">
+            color, fill, texto = "#64748b", "#1e293b", str(i + 1)
+        circulos.append(
+            f'<circle cx="{cx}" cy="{cy}" r="14" stroke="{color}" '
+            f'stroke-width="3" fill="{fill}" />'
+            f'<text x="{cx}" y="{cy + 4}" font-size="11" font-weight="bold" '
+            f'fill="white" text-anchor="middle">{texto}</text>'
+        )
+    return f'''
+    <div style="display:flex; justify-content:center; margin-bottom:15px; overflow-x:auto;">
         <svg width="{ancho_total}" height="70" viewBox="0 0 {ancho_total} 70">
-            {lineas}
-            {"".join(circulos)}
+            {lineas}{"".join(circulos)}
         </svg>
     </div>
     '''
-    return svg
 
-# PANTALLA DE JUEGO TERMINADO
-if st.session_state.terminado or st.session_state.vidas <= 0 or st.session_state.indice >= len(PREGUNTAS):
-    st.markdown("<h2 style='text-align:center;'>🏁 Misión Heurística Finalizada</h2>", unsafe_allow_html=True)
-    
+
+# ─── ¿Partida terminada? ─────────────────────────────────────────
+if st.session_state.terminado:
+    st.markdown("<h2 style='text-align:center;'>🏁 Misión Heurística Finalizada</h2>",
+                unsafe_allow_html=True)
+
     if st.session_state.vidas > 0:
         st.balloons()
-        rango = "Maestro de la Búsqueda Óptima (A*)" if st.session_state.puntos >= 900 else "Explorador Heurístico Calificado"
-        st.success(f"🏆 ¡Felicitaciones! Has completado el recorrido con éxito.\\n\\n**Rango obtenido:** {rango}")
+        pct = st.session_state.puntos / MAX_PUNTOS
+        if pct >= 0.9:
+            rango = "🥇 Maestro de la Búsqueda Óptima (A*)"
+        elif pct >= 0.6:
+            rango = "🥈 Explorador Heurístico Calificado"
+        else:
+            rango = "🥉 Aprendiz de Búsqueda Informada"
+        st.success(f"🏆 ¡Has completado el recorrido con éxito!\n\n**Rango obtenido:** {rango}")
     else:
         st.error("💀 ¡Has caído en un Óptimo Local sin salida! Te has quedado sin vidas.")
 
     st.markdown(f"""
     <div class="hud-box" style="text-align:center;">
         <h3>Estadísticas Finales</h3>
-        <p style="font-size: 20px;">⭐ <b>Puntuación total:</b> {st.session_state.puntos} / 1000 pts</p>
-        <p style="font-size: 18px;">🔥 <b>Mayor racha:</b> {st.session_state.racha} respuestas seguidas</p>
-        <p style="font-size: 18px;">❤️ <b>Vidas conservadas:</b> {max(0, st.session_state.vidas)} / 3</p>
+        <p style="font-size:20px;">⭐ <b>Puntuación total:</b> {st.session_state.puntos} / {MAX_PUNTOS} pts</p>
+        <p style="font-size:18px;">🔥 <b>Mayor racha:</b> {st.session_state.max_racha} respuestas seguidas</p>
+        <p style="font-size:18px;">❤️ <b>Vidas conservadas:</b> {max(0, st.session_state.vidas)} / 3</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if st.button("🔄 Volver a Jugar", use_container_width=True):
-        st.session_state.indice = 0
-        st.session_state.puntos = 0
-        st.session_state.vidas = 3
-        st.session_state.racha = 0
-        st.session_state.historial = []
-        st.session_state.terminado = False
+        reset_juego()
         st.rerun()
 
-# PANTALLA PRINCIPAL DE PREGUNTA ACTIVA
+# ─── Pantalla activa ─────────────────────────────────────────────
 else:
-    # HUD Superior (Vidas, Puntos, Racha)
+    # HUD superior
     col1, col2, col3 = st.columns(3)
-    with col1:
-        corazones = "❤️ " * st.session_state.vidas + "🖤 " * (3 - st.session_state.vidas)
-        st.markdown(f"**Vidas:** {corazones}")
-    with col2:
-        st.markdown(f"**Puntos:** ⭐ `{st.session_state.puntos} pts`")
-    with col3:
-        st.markdown(f"**Racha:** 🔥 `{st.session_state.racha}`")
+    col1.markdown(f"**Vidas:** {'❤️ ' * st.session_state.vidas}{'🖤 ' * (3 - st.session_state.vidas)}")
+    col2.markdown(f"**Puntos:** ⭐ `{st.session_state.puntos} pts`")
+    col3.markdown(f"**Racha:** 🔥 `{st.session_state.racha}`")
 
-    # Mapa gráfico interactivo de nodos
-    st.markdown(render_mapa_progreso(st.session_state.indice, len(PREGUNTAS)), unsafe_allow_html=True)
+    st.markdown(render_mapa_progreso(st.session_state.indice, len(PREGUNTAS)),
+                unsafe_allow_html=True)
 
-    # Tarjeta de la pregunta actual
     q = PREGUNTAS[st.session_state.indice]
-    
+
     st.markdown(f"""
     <div class="question-card">
         <span class="badge-topic">{q['tema']} • Nodo {st.session_state.indice + 1} de {len(PREGUNTAS)}</span>
-        <h4 style="margin-top: 5px; color: #f8fafc;">{q['pregunta']}</h4>
+        <h4 style="margin-top:5px; color:#f8fafc;">{q['pregunta']}</h4>
     </div>
     """, unsafe_allow_html=True)
 
-    # Selección de opciones
-    opcion_elegida = st.radio(
-        "Selecciona la decisión óptima:",
-        q["opciones"],
-        key=f"pregunta_{st.session_state.indice}",
-        label_visibility="collapsed"
-    )
+    # ── FASE 1: responder ────────────────────────────────────────
+    if not st.session_state.respondido:
+        opcion_elegida = st.radio(
+            "Selecciona la decisión óptima:",
+            q["opciones"],
+            key=f"pregunta_{st.session_state.indice}",
+            label_visibility="collapsed"
+        )
+        if st.button("🚀 Confirmar Movimiento", use_container_width=True):
+            idx_sel = next(i for i, o in enumerate(q["opciones"]) if o == opcion_elegida)
+            es_correcta = (idx_sel == q["correcta"])
 
-    col_btn, _ = st.columns([1, 1])
-    with col_btn:
-        confirmar = st.button("🚀 Confirmar Movimiento", use_container_width=True)
+            if es_correcta:
+                st.session_state.racha += 1
+                bono = BONO_RACHA if st.session_state.racha > 1 else 0
+                ganados = PUNTOS_BASE + bono
+                st.session_state.puntos += ganados
+                st.session_state.max_racha = max(st.session_state.max_racha,
+                                                 st.session_state.racha)
+            else:
+                st.session_state.vidas -= 1
+                st.session_state.racha = 0
+                ganados = 0
 
-    if confirmar:
-        idx_seleccionado = q["opciones"].index(opcion_elegida)
-        
-        if idx_seleccionado == q["correcta"]:
-            st.session_state.racha += 1
-            bono = 20 if st.session_state.racha > 1 else 0
-            puntos_ganados = 100 + bono
-            st.session_state.puntos += puntos_ganados
-            st.success(f"🎉 **¡Movimiento Óptimo!** (+{puntos_ganados} pts)\\n\\n{q['explicacion']}")
+            st.session_state.feedback = {
+                "correcto": es_correcta,
+                "ganados": ganados,
+                "explicacion": q["explicacion"],
+            }
+            st.session_state.respondido = True
+            st.rerun()
+
+    # ── FASE 2: feedback + siguiente ─────────────────────────────
+    else:
+        fb = st.session_state.feedback
+        if fb["correcto"]:
+            st.success(f"🎉 **¡Movimiento Óptimo!** (+{fb['ganados']} pts)\n\n{fb['explicacion']}")
         else:
-            st.session_state.vidas -= 1
-            st.session_state.racha = 0
-            st.error(f"❌ **Ruta Subóptima o Bloqueada.** Pierdes 1 vida.\\n\\n{q['explicacion']}")
-        
-        time.sleep(1.8)
-        st.session_state.indice += 1
-        st.rerun()
+            st.error(f"❌ **Ruta Subóptima o Bloqueada.** Pierdes 1 vida.\n\n{fb['explicacion']}")
+
+        # Determinar si terminamos
+        sin_vidas = st.session_state.vidas <= 0
+        ultimo_nodo = st.session_state.indice >= len(PREGUNTAS) - 1
+        texto_btn = "🏁 Ver Resultados" if (sin_vidas or ultimo_nodo) else "➡️ Siguiente Nodo"
+
+        if st.button(texto_btn, use_container_width=True):
+            if sin_vidas or ultimo_nodo:
+                st.session_state.terminado = True
+            else:
+                st.session_state.indice += 1
+            st.session_state.respondido = False
+            st.session_state.feedback = None
+            st.rerun()
