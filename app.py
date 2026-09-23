@@ -56,7 +56,6 @@ PREGUNTAS = [
     {
         "tema": "Concepto Base",
         "pregunta": "¿Cuál es la definición formal de una 'heurística' en Inteligencia Artificial?",
-        "grafico": "brain",
         "opciones": [
             "Un algoritmo exacto y determinista que siempre halla la solución más barata.",
             "Una regla o función que estima qué tan cerca está un estado de la meta sin garantizar exactitud.",
@@ -69,7 +68,6 @@ PREGUNTAS = [
     {
         "tema": "Espacio de Estados",
         "pregunta": "¿Por qué es indispensable usar heurísticas en problemas como el Ajedrez o el Rompecabezas de 8?",
-        "grafico": "tree",
         "opciones": [
             "Porque evitan la explosión combinatoria reduciendo drásticamente el espacio a explorar.",
             "Porque los lenguajes de programación no pueden usar ciclos `while` en grafos grandes.",
@@ -82,7 +80,6 @@ PREGUNTAS = [
     {
         "tema": "Ejemplos de h(n)",
         "pregunta": "En el rompecabezas de 8 piezas, ¿qué mide la heurística de 'Distancia Manhattan'?",
-        "grafico": "grid",
         "opciones": [
             "El número total de piezas que ya están en su posición final correcta.",
             "La distancia euclidiana en línea diagonal directa entre el espacio vacío y el centro.",
@@ -95,7 +92,6 @@ PREGUNTAS = [
     {
         "tema": "Función de Evaluación",
         "pregunta": "En la fórmula f(n) = g(n) + h(n), ¿qué representa cada componente?",
-        "grafico": "formula",
         "opciones": [
             "g(n) es el costo estimado a la meta y h(n) es el costo real acumulado.",
             "g(n) es el costo real acumulado desde el inicio y h(n) es el costo estimado a la meta.",
@@ -108,7 +104,6 @@ PREGUNTAS = [
     {
         "tema": "Cálculo Numérico f(n)",
         "pregunta": "Si para llegar a la Ciudad B ya recorriste 25 km (g=25) y su distancia aérea a la meta es 40 km (h=40), ¿cuál es su f(B)?",
-        "grafico": "math",
         "opciones": [
             "f(B) = 15 km",
             "f(B) = 65 km",
@@ -121,7 +116,6 @@ PREGUNTAS = [
     {
         "tema": "Admisibilidad",
         "pregunta": "¿Qué condición matemática exige la 'Admisibilidad' de una heurística?",
-        "grafico": "shield",
         "opciones": [
             "h(n) jamás debe sobreestimar el costo real: h(n) ≤ costo_real(n, meta).",
             "h(n) debe ser siempre el doble del costo acumulado para prevenir riesgos.",
@@ -134,7 +128,6 @@ PREGUNTAS = [
     {
         "tema": "No Informada vs. Informada",
         "pregunta": "¿Qué ventaja tiene una búsqueda informada frente a BFS (Amplitud) o DFS (Profundidad)?",
-        "grafico": "compass",
         "opciones": [
             "No necesita verificar si un nodo ya fue visitado anteriormente.",
             "Posee una función evaluadora que le da dirección o 'brújula' hacia la meta.",
@@ -147,7 +140,6 @@ PREGUNTAS = [
     {
         "tema": "Búsqueda Voraz",
         "pregunta": "¿Por qué la Búsqueda Voraz (Greedy Best-First Search) NO siempre es óptima?",
-        "grafico": "warning",
         "opciones": [
             "Porque suma el costo g(n) demasiadas veces provocando desbordamiento.",
             "Porque solo evalúa h(n), dejándose llevar por la cercanía aparente sin importar el costo real acumulado.",
@@ -160,7 +152,6 @@ PREGUNTAS = [
     {
         "tema": "Ascenso de Colinas",
         "pregunta": "¿Cuál es el principal peligro del algoritmo de Ascenso de Colinas (Hill Climbing)?",
-        "grafico": "mountain",
         "opciones": [
             "Quedar atrapado en un óptimo local (un pico que es más alto que sus vecinos, pero no el más alto del mapa).",
             "Gastar toda la memoria RAM almacenando los nodos anteriores.",
@@ -173,7 +164,6 @@ PREGUNTAS = [
     {
         "tema": "Búsqueda en Haz (Beam Search)",
         "pregunta": "¿En qué consiste la técnica de Búsqueda en Haz y cuál es su parámetro 'k'?",
-        "grafico": "beam",
         "opciones": [
             "Conserva solo los 'k' mejores nodos en cada nivel, sacrificando optimalidad a cambio de ahorrar memoria.",
             "Multiplica la heurística por 'k' veces para acelerar el procesamiento gráfico.",
@@ -244,7 +234,7 @@ if st.session_state.terminado or st.session_state.vidas <= 0 or st.session_state
     if st.session_state.vidas > 0:
         st.balloons()
         rango = "Maestro de la Búsqueda Óptima (A*)" if st.session_state.puntos >= 900 else "Explorador Heurístico Calificado"
-        st.success(f"🏆 ¡Felicitaciones! Has completado el recorrido con éxito.\n\n**Rango obtenido:** {rango}")
+        st.success(f"🏆 ¡Felicitaciones! Has completado el recorrido con éxito.\\n\\n**Rango obtenido:** {rango}")
     else:
         st.error("💀 ¡Has caído en un Óptimo Local sin salida! Te has quedado sin vidas.")
 
@@ -311,20 +301,12 @@ else:
             bono = 20 if st.session_state.racha > 1 else 0
             puntos_ganados = 100 + bono
             st.session_state.puntos += puntos_ganados
-            st.success(f"🎉 **¡Movimiento Óptimo!** (+{puntos_ganados} pts)\n\n{q['explicacion']}")
+            st.success(f"🎉 **¡Movimiento Óptimo!** (+{puntos_ganados} pts)\\n\\n{q['explicacion']}")
         else:
             st.session_state.vidas -= 1
             st.session_state.racha = 0
-            st.error(f"❌ **Ruta Subóptima o Bloqueada.** Pierdes 1 vida.\n\n{q['explicacion']}")
+            st.error(f"❌ **Ruta Subóptima o Bloqueada.** Pierdes 1 vida.\\n\\n{q['explicacion']}")
         
         time.sleep(1.8)
         st.session_state.indice += 1
         st.rerun()
-```
-
-### Qué incluye esta nueva versión:
-1. **10 preguntas completas:** Cubren el 100% de tu exposición (definición formal, distancia Manhattan, cálculo numérico de $f = g + h$, admisibilidad, consistencia, comparación con BFS/DFS, búsqueda voraz, ascenso de colinas y búsqueda en haz).
-2. **Mapa interactivo de nodos en SVG:** En la parte superior se muestra el grafo de la expedición en tiempo real. Los nodos superados se pintan de verde con tilde (`✓`), el nodo activo pulsa en azul brillante y los futuros permanecen en gris.
-3. **HUD estilo videojuego:** Sistema de 3 vidas con corazones (`❤️ ❤️ ❤️`), contador de puntuación acumulada y racha de aciertos con multiplicador (`🔥`).
-4. **Retroalimentación conceptual inmediata:** Tras responder cada pregunta, el sistema explica el porqué teórico antes de avanzar al siguiente nodo.
-5. **Cero dependencias adicionales:** Utiliza únicamente `streamlit` y la librería estándar de Python (`time`), por lo que tu archivo `requirements.txt` no necesita cambios y se desplegará sin errores en Streamlit Cloud.
